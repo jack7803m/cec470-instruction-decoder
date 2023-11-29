@@ -301,7 +301,33 @@ void mathOp() {
     return;
 }
 
-void memoryOp() {}
+void memoryOp() {
+    //Store
+    if ((IR & MEM_FUN_MASK) == 0b00000000) {
+        //Accumulator ACC
+        if ((IR & MEM_REG_MASK) == 0b00000000){
+            //Method
+            switch (IR & MEM_MTHD_MASK){
+                case 0b00000000:
+                    break;
+
+                case 0b00000001:
+                    break;
+
+                case 0b00000010:
+                    break;
+
+                default:
+                    break;
+            }
+        }
+    } 
+
+    //Load
+    else { 
+
+    }
+}
 
 void branchOp() {}
 
