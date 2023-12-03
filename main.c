@@ -126,7 +126,7 @@ void fetchNextInstruction() {
         } else {
             // source constant (8 or 16 bit)
             if (IR & MATH_SRC_MASK == 0b00000010) {
-                PC++;
+                PC++; 
             }
             // source memory (16 bit)
             else if (IR & MATH_SRC_MASK == 0b00000011) {
@@ -304,14 +304,16 @@ void mathOp() {
 void memoryOp() {
     //Store
     if ((IR & MEM_FUN_MASK) == 0b00000000) {
-        //Accumulator ACC
+        //Store from ACC 
         if ((IR & MEM_REG_MASK) == 0b00000000){
             //Method
             switch (IR & MEM_MTHD_MASK){
-                case 0b00000000: //Confused
+                case 0b00000000: //16bits
+                    memory[loadBigEndian(memory[PC - 2])] = ACC;
                     break;
 
-                case 0b00000001:
+                case 0b00000001: //Should be 8 bits
+                    memory[PC - 1];
                     break;
 
                 case 0b00000010:
@@ -325,14 +327,13 @@ void memoryOp() {
         //Storing from Index register MAR 
         else {
             switch (IR & MEM_MTHD_MASK){
-                case 0b00000000: 
+                case 0b00000000: //16bits
                     break;
 
                 case 0b00000001:
                     break;
 
                 case 0b00000010:
-                    memory[MAR] = ACC;
                     break;
 
                 default:
@@ -344,7 +345,39 @@ void memoryOp() {
 
     //Load
     else { 
+        //Loading into ACC
+        if ((IR & MEM_REG_MASK) == 0b00000000){
+            //Method
+            switch (IR & MEM_MTHD_MASK){
+                case 0b00000000: 
+                    break;
 
+                case 0b00000001:
+                    break;
+
+                case 0b00000010:
+                    break;
+
+                default:
+                    break;
+            }
+        }
+        //loading into MAR
+        else {
+            switch (IR & MEM_MTHD_MASK){
+                case 0b00000000: 
+                    break;
+
+                case 0b00000001:
+                    break;
+
+                case 0b00000010:
+                    break;
+
+                default:
+                    break;
+            }
+        }
     }
 }
 
