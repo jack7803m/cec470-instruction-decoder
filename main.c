@@ -308,11 +308,11 @@ void memoryOp() {
         if ((IR & MEM_REG_MASK) == 0b00000000){
             //Method
             switch (IR & MEM_MTHD_MASK){
-                case 0b00000000: //16bits
+                case 0b00000000: 
                     memory[loadBigEndian(memory[PC - 2])] = ACC;
                     break;
 
-                case 0b00000001: //Should be 8 bits
+                case 0b00000001: /
                     memory[PC - 1];
                     break;
 
@@ -327,7 +327,8 @@ void memoryOp() {
         //Storing from Index register MAR 
         else {
             switch (IR & MEM_MTHD_MASK){
-                case 0b00000000: //16bits
+                case 0b00000000:
+                    
                     break;
 
                 case 0b00000001:
