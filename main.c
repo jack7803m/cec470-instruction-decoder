@@ -308,18 +308,37 @@ void memoryOp() {
         if ((IR & MEM_REG_MASK) == 0b00000000){
             //Method
             switch (IR & MEM_MTHD_MASK){
-                case 0b00000000:
+                case 0b00000000: //Confused
                     break;
 
                 case 0b00000001:
                     break;
 
                 case 0b00000010:
+                    memory[MAR] = ACC;
                     break;
 
                 default:
                     break;
             }
+        } 
+        //Storing from Index register MAR 
+        else {
+            switch (IR & MEM_MTHD_MASK){
+                case 0b00000000: 
+                    break;
+
+                case 0b00000001:
+                    break;
+
+                case 0b00000010:
+                    memory[MAR] = ACC;
+                    break;
+
+                default:
+                    break;
+            }
+
         }
     } 
 
