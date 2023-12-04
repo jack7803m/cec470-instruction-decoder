@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define MEMORYLENGTH 0xFFFF
+#define MEMORYLENGTH 0xFFFF + 1
 #define NOP 0b00011000
 #define HALT 0b00011001
 
@@ -21,6 +21,9 @@ void executeInstruction(void);
 void mathOp(void);
 void memoryOp(void);
 void branchOp(void);
+
+void storeBigEndian(uint8_t *dest, uint16_t val);
+uint16_t loadBigEndian(uint8_t *src);
 
 uint8_t memory[MEMORYLENGTH] = {0};
 uint8_t ACC = 0;
@@ -71,7 +74,7 @@ int memoryInit() {
     }
 
     int i = 0;
-    while (fscanf(fp, "%c", &memory[i]) != EOF) {
+    while (fscanf(fp, "%02x", &memory[i]) != EOF) {
         i++;
     }
 
@@ -92,11 +95,11 @@ int memoryDump() {
     int i = 0;
     // Match formatting of example output file
     while (i < MEMORYLENGTH) {
-        fprintf(fp, "%c ", memory[i]);
+        fprintf(fp, "%02x ", memory[i]);
 
-        if (i % 10 == 0 && i != 0) fprintf(fp, "\n");
-
+        if ((i + 1) % 16 == 0 && (i + 1) != MEMORYLENGTH) fprintf(fp, "\n");
         i++;
+
     }
 
     fclose(fp);
@@ -118,30 +121,34 @@ void fetchNextInstruction() {
     IR = memory[PC];
     PC++;
 
+    int oldPC = PC;
+
     // math op: msb is 1
     if (IR & 0b10000000) {
+        printf("Math Op at PC: %d (%02x)", PC - 1, IR);
         // destination memory (16 bit)
-        if (IR & MATH_DEST_MASK == 0b00001100) {
+        if ((IR & MATH_DEST_MASK) == 0b00001100) {
             PC += 2;
         } else {
             // source constant (8 or 16 bit)
-            if (IR & MATH_SRC_MASK == 0b00000010) {
-                PC++; 
+            if ((IR & MATH_SRC_MASK) == 0b00000010) {
+                PC++;
             }
             // source memory (16 bit)
-            else if (IR & MATH_SRC_MASK == 0b00000011) {
+            else if ((IR & MATH_SRC_MASK) == 0b00000011) {
                 PC += 2;
             }
         }
     }
     // memory op: first 4 bits are 0
-    else if (IR & 0b11110000 == 0b00000000) {
+    else if ((IR & 0b11110000) == 0b00000000) {
+        printf("Mem Op at PC: %d (%02x)", PC - 1, IR);
         // address operand, 16 bit
-        if (IR & MEM_MTHD_MASK == 0b00000000) {
+        if ((IR & MEM_MTHD_MASK) == 0b00000000) {
             PC += 2;
         }
         // constant operand, 8 bit for acc and 16 bit for mar
-        else if (IR & MEM_MTHD_MASK == 0b00000001) {
+        else if ((IR & MEM_MTHD_MASK) == 0b00000001) {
             // mar is reg bit set
             if (IR & MEM_REG_MASK) {
                 PC += 2;
@@ -153,10 +160,18 @@ void fetchNextInstruction() {
         }
     }
     // branch op: first 5 bits are 00010
-    else if (IR & 0b11111000 == 0b00010000) {
+    else if ((IR & 0b11111000) == 0b00010000) {
+        printf("Branch Op at PC: %d (%02x)", PC - 1, IR);
         // branch always uses next 16 bits as operand
         PC += 2;
     }
+
+    printf(" [");
+    for (int i = oldPC; i < PC; i++) {
+        printf("%02x", memory[i]);
+        if (i != PC - 1) printf(" ");
+    }
+    printf("]\n");
 
     return;
 }
@@ -169,15 +184,15 @@ void fetchNextInstruction() {
  */
 void executeInstruction() {
     // math op: msb is 1
-    if (IR & 0b10000000) {
+    if ((IR & 0b10000000)) {
         mathOp();
     }
     // memory op: first 4 bits are 0
-    else if (IR & 0b11110000 == 0b00000000) {
+    else if ((IR & 0b11110000) == 0b00000000) {
         memoryOp();
     }
     // branch op: first 5 bits are 00010
-    else if (IR & 0b11111000 == 0b00010000) {
+    else if ((IR & 0b11111000) == 0b00010000) {
         branchOp();
     }
     // halt
@@ -204,17 +219,18 @@ void mathOp() {
     // Get destination:
     switch (IR & MATH_DEST_MASK) {
         case 0b00000000:
-            dest = &memory[MAR];
+            dest = (uint16_t *)&memory[MAR];
             break;
         case 0b00000100:
-            dest = &ACC;
+            dest = (uint16_t *)&ACC;
             bits = 8;
             break;
         case 0b00001000:
             dest = &MAR;
             break;
         case 0b00001100:
-            dest = &memory[loadBigEndian(memory[PC - 2])];
+            dest =
+                (uint16_t *)&memory[loadBigEndian((uint16_t *)&memory[PC - 2])];
             break;
         default:
             printf("Invalid destination in math op (impossible)\n");
@@ -222,22 +238,23 @@ void mathOp() {
     }
 
     // Get source:
-    switch (IR & MATH_SRC_MASK) {
+    switch ((IR & MATH_SRC_MASK)) {
         case 0b00000000:
-            src = &memory[MAR];
+            src = (uint16_t *)&memory[MAR];
             break;
         case 0b00000001:
             src = &ACC;
             break;
         case 0b00000010:
             if (bits == 16) {
-                src = &memory[PC - 2];
+                src = (uint16_t *)&memory[PC - 2];
             } else {
-                src = &memory[PC - 1];
+                src = (uint16_t *)&memory[PC - 1];
             }
             break;
         case 0b00000011:
-            src = &memory[loadBigEndian(memory[PC - 2])];
+            src =
+                (uint16_t *)&memory[loadBigEndian((uint16_t *)&memory[PC - 2])];
             break;
         default:
             printf("Invalid source in math op (impossible)\n");
@@ -298,91 +315,111 @@ void mathOp() {
     } else {
         *dest = destVal & 0xFF;
     }
+
     return;
 }
 
 void memoryOp() {
-    //Store
-    if ((IR & MEM_FUN_MASK) == 0b00000000) {
-        //Store from ACC 
-        if ((IR & MEM_REG_MASK) == 0b00000000){
-            //Method
-            switch (IR & MEM_MTHD_MASK){
-                case 0b00000000: 
-                    memory[loadBigEndian(memory[PC - 2])] = ACC;
-                    break;
+    // Register
+    uint16_t *reg;
+    int bits = 16;
 
-                case 0b00000001: /
-                    memory[PC - 1];
-                    break;
+    if (IR & MEM_REG_MASK) {
+        reg = &MAR;
+        bits = 16;
+    } else {
+        reg = &ACC;
+        bits = 8;
+    }
 
-                case 0b00000010:
-                    memory[MAR] = ACC;
-                    break;
-
-                default:
-                    break;
-            }
-        } 
-        //Storing from Index register MAR 
-        else {
-            switch (IR & MEM_MTHD_MASK){
-                case 0b00000000:
-                    
-                    break;
-
-                case 0b00000001:
-                    break;
-
-                case 0b00000010:
-                    break;
-
-                default:
-                    break;
-            }
-
+    // Operand
+    uint8_t *operand;
+    // Address
+    if ((IR & MEM_MTHD_MASK) == 0b00000000) {
+        operand = &memory[loadBigEndian(&memory[PC - 2])];
+    }
+    // Constant
+    else if ((IR & MEM_MTHD_MASK) == 0b00000001) {
+        // MAR is reg bit set, 16 bit constant
+        if (IR & MEM_REG_MASK) {
+            operand = &memory[PC - 2];
         }
-    } 
-
-    //Load
-    else { 
-        //Loading into ACC
-        if ((IR & MEM_REG_MASK) == 0b00000000){
-            //Method
-            switch (IR & MEM_MTHD_MASK){
-                case 0b00000000: 
-                    break;
-
-                case 0b00000001:
-                    break;
-
-                case 0b00000010:
-                    break;
-
-                default:
-                    break;
-            }
-        }
-        //loading into MAR
+        // ACC is reg bit unset, 8 bit constant
         else {
-            switch (IR & MEM_MTHD_MASK){
-                case 0b00000000: 
-                    break;
-
-                case 0b00000001:
-                    break;
-
-                case 0b00000010:
-                    break;
-
-                default:
-                    break;
-            }
+            operand = &memory[PC - 1];
         }
     }
+    // Indirect (MAR as pointer)
+    else if ((IR & MEM_MTHD_MASK) == 0b00000010) {
+        operand = &memory[MAR];
+    }
+
+    // Function
+    // Store
+    if ((IR & MEM_FUN_MASK) == 0b00000000) {
+        if (bits == 16) {
+            storeBigEndian(operand, *reg);
+        } else {
+            *operand = *reg & 0xFF;
+        }
+    }
+    // Load
+    else if ((IR & MEM_FUN_MASK) == 0b00001000) {
+        if (bits == 16) {
+            *reg = loadBigEndian(operand);
+        } else {
+            *reg = *operand & 0xFF;
+        }
+        printf("Loaded %02x into %s\n", *reg, (IR & MEM_REG_MASK) ? "MAR" : "ACC");
+    }
+
+    return;
 }
 
-void branchOp() {}
+void branchOp() {
+    // Branch type
+    uint8_t type = IR & BRANCH_TYPE_MASK;
+
+    // Get the address to branch to
+    uint16_t address = loadBigEndian(&memory[PC - 2]);
+
+    // Branch
+    switch (type) {
+        // Unconditional branch
+        case 0b000:
+            PC = address;
+            break;
+        // Branch if ACC == 0
+        case 0b001:
+            if (ACC == 0) PC = address;
+            break;
+        // Branch if ACC != 0
+        case 0b010:
+            if (ACC != 0) PC = address;
+            break;
+        // Branch if ACC > 0
+        case 0b011:
+            if (ACC < 0) PC = address;
+            break;
+        // Branch if ACC < 0
+        case 0b100:
+            if (ACC <= 0) PC = address;
+            break;
+        // Branch if ACC >= 0
+        case 0b101:
+            if (ACC > 0) PC = address;
+            break;
+        // Branch if ACC <= 0
+        case 0b110:
+            if (ACC >= 0) PC = address;
+            break;
+        default:
+            printf("Invalid branch type in branch op (impossible)\n");
+            break;
+    }
+
+    return;
+}
 
 /**
  * @brief Stores a 16-bit value in big-endian format.
@@ -390,7 +427,7 @@ void branchOp() {}
  * @param dest Pointer to the destination memory location.
  * @param val  16-bit value to be stored in big-endian format.
  */
-void storeBigEndian(uint16_t *dest, uint16_t val) {
+void storeBigEndian(uint8_t *dest, uint16_t val) {
     *dest = (val >> 8) & 0xFF;
     *(dest + 1) = val & 0xFF;
 }
@@ -401,4 +438,4 @@ void storeBigEndian(uint16_t *dest, uint16_t val) {
  * @param src Pointer to the memory location containing the 16-bit value.
  * @return The 16-bit value loaded from memory in big-endian format.
  */
-uint16_t loadBigEndian(uint16_t *src) { return (*src << 8) | *(src + 1); }
+uint16_t loadBigEndian(uint8_t *src) { return (((uint16_t)*src) << 8) | ((uint16_t)*(src + 1)); }
