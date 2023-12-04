@@ -127,10 +127,19 @@ void fetchNextInstruction() {
         // destination memory (16 bit)
         if ((IR & MATH_DEST_MASK) == 0b00001100) {
             PC += 2;
-        } else {
+        } 
+        // source can only be an in-memory operand if destination is not in-memory operand
+        else {
             // source constant (8 or 16 bit)
             if ((IR & MATH_SRC_MASK) == 0b00000010) {
-                PC++;
+                // acc is destination, so source is 8 bit
+                if ((IR & MATH_DEST_MASK) == 0b00000100) {
+                    PC++;
+                }
+                // otherwise, source is 16 bit
+                else {
+                    PC++;
+                }
             }
             // source memory (16 bit)
             else if ((IR & MATH_SRC_MASK) == 0b00000011) {
