@@ -95,9 +95,9 @@ int memoryDump() {
     int i = 0;
     // Match formatting of example output file
     while (i < MEMORYLENGTH) {
-        fprintf(fp, "%02x ", memory[i]);
+        // fprintf(fp, "%02x ", memory[i]);
 
-        if ((i + 1) % 16 == 0 && (i + 1) != MEMORYLENGTH) fprintf(fp, "\n");
+        // if ((i + 1) % 16 == 0 && (i + 1) != MEMORYLENGTH) fprintf(fp, "\n");
         i++;
 
     }
@@ -121,11 +121,9 @@ void fetchNextInstruction() {
     IR = memory[PC];
     PC++;
 
-    int oldPC = PC;
-
     // math op: msb is 1
     if (IR & 0b10000000) {
-        printf("Math Op at PC: %d (%02x)", PC - 1, IR);
+        // printf("Math Op at PC: %d (%02x)", PC - 1, IR);
         // destination memory (16 bit)
         if ((IR & MATH_DEST_MASK) == 0b00001100) {
             PC += 2;
@@ -142,7 +140,7 @@ void fetchNextInstruction() {
     }
     // memory op: first 4 bits are 0
     else if ((IR & 0b11110000) == 0b00000000) {
-        printf("Mem Op at PC: %d (%02x)", PC - 1, IR);
+        // printf("Mem Op at PC: %d (%02x)", PC - 1, IR);
         // address operand, 16 bit
         if ((IR & MEM_MTHD_MASK) == 0b00000000) {
             PC += 2;
@@ -161,17 +159,10 @@ void fetchNextInstruction() {
     }
     // branch op: first 5 bits are 00010
     else if ((IR & 0b11111000) == 0b00010000) {
-        printf("Branch Op at PC: %d (%02x)", PC - 1, IR);
+        // printf("Branch Op at PC: %d (%02x)", PC - 1, IR);
         // branch always uses next 16 bits as operand
         PC += 2;
     }
-
-    printf(" [");
-    for (int i = oldPC; i < PC; i++) {
-        printf("%02x", memory[i]);
-        if (i != PC - 1) printf(" ");
-    }
-    printf("]\n");
 
     return;
 }
@@ -370,7 +361,6 @@ void memoryOp() {
         } else {
             *reg = *operand & 0xFF;
         }
-        printf("Loaded %02x into %s\n", *reg, (IR & MEM_REG_MASK) ? "MAR" : "ACC");
     }
 
     return;
