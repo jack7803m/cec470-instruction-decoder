@@ -95,9 +95,9 @@ int memoryDump() {
     int i = 0;
     // Match formatting of example output file
     while (i < MEMORYLENGTH) {
-        // fprintf(fp, "%02x ", memory[i]);
+        fprintf(fp, "%02x ", memory[i]);
 
-        // if ((i + 1) % 16 == 0 && (i + 1) != MEMORYLENGTH) fprintf(fp, "\n");
+        if ((i + 1) % 16 == 0 && (i + 1) != MEMORYLENGTH) fprintf(fp, "\n");
         i++;
 
     }

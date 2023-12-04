@@ -2,6 +2,7 @@
 # Usage: python test.py <file1> <file2>
 
 import sys
+import itertools
 
 def main():
     if len(sys.argv) != 3:
@@ -14,7 +15,7 @@ def main():
     passed = True
 
     with open(file1) as f1, open(file2) as f2:
-        for i, (line1, line2) in enumerate(zip(f1, f2)):
+        for i, (line1, line2) in enumerate(itertools.zip_longest(f1, f2)):
             if line1 != line2:
                 passed = False
                 print("----------------------------------------")
@@ -22,6 +23,8 @@ def main():
                 print(f"Difference found on line {i + 1}\n")
                 print(f"File 1: {line1.rstrip()}")
                 print(f"File 2: {line2.rstrip()}")
+
+        
 
     if passed:
         print("Test passed ✅")
